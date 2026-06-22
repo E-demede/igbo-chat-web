@@ -29,7 +29,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   word-break: break-word; background: #2a2a33; align-self: flex-start;
 }
 .msg.me { background: #2E6F4E; align-self: flex-end; }
-.msg .glyphtext { font-family: 'IgboGlyphs'; font-size: 26px; line-height: 2.0; word-spacing: 0.4em; letter-spacing: 0.12em; }
+.msg .glyphtext { font-family: 'IgboGlyphs'; font-size: var(--bubble, 26px); line-height: 2.0; word-spacing: 0.4em; letter-spacing: 0.12em; }
 
 /* ===== alignment system (verbatim from Transcribe_Engine) ===== */
 .glyphtext .desc, #preview .desc { display:inline-block; position:relative; top:0.28em; overflow:visible; }
@@ -64,7 +64,12 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   border: none; color: #f2f2f2; padding: 0; transition: background .08s;
 }
 .key:active { background: #4a4a55; }
-#pageLearn .key{position:relative;height:auto;padding-bottom:14px;}
+#fontctl{float:right;}
+#fontctl button{background:#34343c;color:#f2f2f2;border:none;border-radius:6px;font-size:13px;padding:2px 9px;margin-left:4px;cursor:pointer;}
+
+.show-labels .key.glyph{position:relative;height:auto;padding-bottom:13px;}
+.latlab{display:none;}
+.show-labels .latlab{display:block;}
 .latlab{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-family:system-ui;font-size:9px;line-height:1;color:#9a9aa5;pointer-events:none;}
 
 .key.glyph { font-family: 'IgboGlyphs'; font-size: 18px; background: #3e3e46; padding-bottom: 4px; }
@@ -89,15 +94,12 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
 </head>
 <body>
 <div id="app">
-  <header><span class="dot"></span> Igbo Script Chat</header>
+  <header><span class="dot"></span> Igbo Script Chat <span id="fontctl"><button id="fdec" aria-label="Smaller">A−</button><button id="finc" aria-label="Larger">A+</button></span></header>
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
     <div id="kbd"></div>
-    <div id="sendbar">
-      <button id="clearbtn" aria-label="Clear" title="Clear"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
-      
-    </div>
+    
   </div>
 </div>
 
@@ -191,8 +193,9 @@ const kbd=document.getElementById('kbd'), preview=document.getElementById('previ
 const pageMain=document.createElement('div'); pageMain.className='kpage';
 const pageSym=document.createElement('div'); pageSym.className='kpage'; pageSym.style.display='none';
 kbd.appendChild(pageMain); kbd.appendChild(pageSym); const pageLearn=document.createElement('div'); pageLearn.id='pageLearn'; pageLearn.className='kpage'; pageLearn.style.display='none'; kbd.appendChild(pageLearn);
+function addLat(b,t){ if(!t)return b; const sp=document.createElement('span'); sp.className='latlab'; sp.textContent=t; b.appendChild(sp); return b; }
 function showSymbols(on){ pageMain.style.display=on?'none':''; pageSym.style.display=on?'':'none'; }
-function showLearn(on){ pageMain.style.display=on?'none':''; pageLearn.style.display=on?'':'none'; pageSym.style.display='none'; }
+function showLearn(on){ document.body.classList.toggle('show-labels'); }
 
 function refresh(){ preview.innerHTML=unitsToHTML(snapshotUnits(), noun()); if(sendbtn)sendbtn.disabled = st.units.length===0 && !st.pend; }
 function mkkey(cls, label, fn){ const b=document.createElement('button'); b.className='key '+cls; if(label!==null)b.textContent=label;
@@ -203,9 +206,9 @@ function mkrow(){ const r=document.createElement('div'); r.className='krow'; ret
 let r=mkrow(); for(let n=1;n<=9;n++){ const x=n; r.appendChild(mkkey('ctrl',String(n),()=>Engine.sep(String(x)))); }
 r.appendChild(mkkey('ctrl','0',()=>Engine.sep('0'))); pageMain.appendChild(r);
 // consonants
-ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(mkkey('glyph kcons',consCap(c),()=>Engine.consonant(c)))); pageMain.appendChild(rr); });
+ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(addLat(mkkey('glyph kcons',consCap(c),()=>Engine.consonant(c)), R.clatin[c]||c))); pageMain.appendChild(rr); });
 // vowels
-{ const rr=mkrow(); R.vowels.forEach(v=>rr.appendChild(mkkey('glyph',vowCap(v),()=>Engine.vowel(v)))); pageMain.appendChild(rr); }
+{ const rr=mkrow(); R.vowels.forEach(v=>rr.appendChild(addLat(mkkey('glyph',vowCap(v),()=>Engine.vowel(v)), R.vlatin[v]||v))); pageMain.appendChild(rr); }
 // modifiers: glides, length, tones (tones drawn as SVG strokes), + !#1 symbols toggle
 { const rr=mkrow();
   GLIDES4.forEach(g=>rr.appendChild(mkkey('glyph',glideCap(g),()=>Engine.glide(g))));
@@ -220,6 +223,7 @@ ROWS_CONS.forEach(row=>{ const rr=mkrow(); row.forEach(c=>rr.appendChild(mkkey('
 // control row: backspace, comma, period, space, forcebreak, nounlock, Enter
 { const rr=mkrow();
   rr.appendChild(mkkey('ctrl','\u232B',()=>Engine.backspace()));
+  { const tb=mkkey('ctrl',null,()=>{ Engine.clear(); refresh(); }); tb.id='clearbtn'; tb.setAttribute('aria-label','Clear'); tb.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'; rr.appendChild(tb); }
   rr.appendChild(mkkey('ctrl narrow',',',()=>Engine.sep(',')));
   rr.appendChild(mkkey('ctrl narrow','.',()=>Engine.sep('.')));
   rr.appendChild(mkkey('accent space','\u23B5',()=>Engine.sep(' ')));
@@ -265,11 +269,12 @@ function addMsg(msg, mine){
   const m=document.createElement('div'); m.className='meta'; m.textContent=mine?'You':'\u2014'; d.appendChild(m);
   messages.appendChild(d); messages.scrollTop=messages.scrollHeight;
 }
+window.addMsg = addMsg;
 function sendMessage(){
   commitPend();
   const units=snapshotUnits(); if(units.length===0)return;
   const msg={ units, noun: noun() };
-  addMsg(msg,true); msgs.push(msg); Engine.clear(); refresh();
+  addMsg(msg,true); msgs.push(msg); if(window.__fbSend)window.__fbSend(msg); Engine.clear(); refresh();
 }
 
 document.getElementById('clearbtn').addEventListener('click',()=>{ Engine.clear(); refresh(); });
@@ -282,5 +287,32 @@ refresh();
  { const rr=mkrow(); rr.appendChild(mkkey('accent','\uD83D\uDCD6',()=>showLearn(false))); const ent=mkkey('accent enter','\u23CE',()=>sendMessage()); rr.appendChild(ent); pageLearn.appendChild(rr); }
 })();
 </script>
+<script>(function(){var sz=26;try{var v=localStorage.getItem('bubbleSz');if(v)sz=parseInt(v);}catch(e){}function apply(){document.documentElement.style.setProperty('--bubble',sz+'px');try{localStorage.setItem('bubbleSz',sz);}catch(e){}}var d=document.getElementById('fdec'),i=document.getElementById('finc');if(d)d.onclick=function(){sz=Math.max(14,sz-2);apply();};if(i)i.onclick=function(){sz=Math.min(40,sz+2);apply();};apply();})();</script>
 </body>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+const app = initializeApp({
+  apiKey: "AIzaSyAsbNXA5NUhUEAXfcsJg__hQhGCDf3PuYg",
+  authDomain: "igbo-chat.firebaseapp.com",
+  databaseURL: "https://igbo-chat-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "igbo-chat",
+  storageBucket: "igbo-chat.firebasestorage.app",
+  messagingSenderId: "879929081835",
+  appId: "1:879929081835:web:2243432298086e0e8463ae"
+});
+const db = getDatabase(app);
+const msgsRef = ref(db, 'messages');
+// unique id for this client so we don't re-render our own pushes
+const MEID = Math.random().toString(36).slice(2);
+window.__fbSend = function(payload){ try{ push(msgsRef, { me: MEID, body: payload, ts: Date.now() }); }catch(e){ console.error(e); } };
+const seen = {};
+onChildAdded(query(msgsRef, limitToLast(100)), (snap)=>{
+  const k = snap.key; if(seen[k]) return; seen[k]=1;
+  const v = snap.val(); if(!v || !v.body) return;
+  if(v.me === MEID) return; // our own message already shown locally
+  try{ window.addMsg(v.body, false); }catch(e){ console.error(e); }
+});
+</script>
+
 </html>
