@@ -110,7 +110,7 @@ header .dot { width: 9px; height: 9px; border-radius: 50%; background: #2E7D55; 
   <div id="messages"><div class="empty" id="emptymsg">No messages yet.<br>Compose below and send.</div></div>
   <div id="composer">
     <div id="preview"></div>
-    <div id="sendrow"><div id="sendbtn" title="Send">↑</div>
+    <div id="sendrow"><div id="emojibtn" title="Emoji" style="flex:none;width:48px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;user-select:none;">😀</div><div id="sendbtn" title="Send">↑</div>
     <div id="kbdtoggle" title="Hide keyboard">▼</div></div>
     <div id="kbd"></div>
     
@@ -153,6 +153,7 @@ function unitsToHTML(units, isNoun){
   let out='';
   for(const u of units){
     if(u.type==='sep'){ out+=(u.ch==='\n'?'<br>':escapeHtml(u.ch)); continue; }
+    if(u.type==='text'){ out+='<span class="txtu">'+escapeHtml(u.s)+'</span>'; continue; }
     const ch=uCharAt(u, isNoun);
     const c=u.c||'';
     const isDesc=/^[PFST]$/.test(c);
@@ -181,6 +182,7 @@ const Engine = {
   glide(g){ const u=lastVC(); if(u) u.g=(u.g===g?'no_glide':g); },
   length(){ const u=lastVC(); if(u) u.l=LENGTHS[(LENGTHS.indexOf(u.l)+1)%3]; },
   sep(ch){ commitPend(); st.units.push({type:'sep',ch}); if(!st.nlL)st.nl=false; if(!st.fbL)st.fb=false; },
+  text(s){ commitPend(); st.units.push({type:'text',s:String(s)}); },
   backspace(){ if(st.pend){ st.pend=null; return; } const u=st.units[st.units.length-1]; if(!u)return;
     if(u.type==='mora') st.units[st.units.length-1]={type:'cons',c:u.c}; else st.units.pop(); },
   clear(){ st.units=[]; st.pend=null; st.fb=false; st.fbL=false; st.nl=false; st.nlL=false; },
@@ -206,10 +208,13 @@ const kbd=document.getElementById('kbd'), preview=document.getElementById('previ
 // two keyboard pages inside #kbd: main (glyphs) and symbols
 const pageMain=document.createElement('div'); pageMain.className='kpage';
 const pageSym=document.createElement('div'); pageSym.className='kpage'; pageSym.style.display='none';
-kbd.appendChild(pageMain); kbd.appendChild(pageSym); const pageLearn=document.createElement('div'); pageLearn.id='pageLearn'; pageLearn.className='kpage'; pageLearn.style.display='none'; kbd.appendChild(pageLearn);
+kbd.appendChild(pageMain); kbd.appendChild(pageSym); const pageLearn=document.createElement('div'); pageLearn.id='pageLearn'; pageLearn.className='kpage'; pageLearn.style.display='none'; kbd.appendChild(pageLearn); const pageEmoji=document.createElement('div'); pageEmoji.id='pageEmoji'; pageEmoji.className='kpage'; pageEmoji.style.display='none'; kbd.appendChild(pageEmoji);
 function addLat(b,t){ if(!t)return b; const sp=document.createElement('span'); sp.className='latlab'; sp.textContent=t; b.appendChild(sp); return b; }
 function showSymbols(on){ pageMain.style.display=on?'none':''; pageSym.style.display=on?'':'none'; }
 function showLearn(on){ document.body.classList.toggle('show-labels'); }
+function showEmoji(on){ pageMain.style.display=on?'none':''; pageEmoji.style.display=on?'':'none'; if(on){pageSym.style.display='none';pageLearn.style.display='none';} }
+function buildEmojiPage(which){ while(pageEmoji.firstChild) pageEmoji.removeChild(pageEmoji.firstChild); var tabs=mkrow(); var te=mkkey('ctrl'+(which==='e'?' on':''),'\u{1F600}',function(){buildEmojiPage('e');}); var tt=mkkey('ctrl'+(which==='t'?' on':''),':)',function(){buildEmojiPage('t');}); var ab=mkkey('accent',null,function(){showEmoji(false);}); ab.innerHTML='<span class="glyphtext">'+unitsToHTML([{type:'vowel',v:'A',t:'downstep',g:'no_glide',l:'short'},{type:'vowel',v:'E',t:'downstep',g:'no_glide',l:'short'},{type:'vowel',v:'I',t:'downstep',g:'no_glide',l:'short'}], true)+'</span>'; tabs.appendChild(te); tabs.appendChild(tt); tabs.appendChild(ab); pageEmoji.appendChild(tabs); var arr=which==='t'?["(^_^)","(>_<)","(o_o)","(;_;)","(T_T)","(\\u256F\\u00B0\\u25A1\\u00B0)\\u256F","\\u0CA0_\\u0CA0","(\\u00AC_\\u00AC)","(\\u2310\\u25A0_\\u25A0)","\\u0CA5_\\u0CA5","\\u00AF\\\\_(\\u30C4)_/\\u00AF","(\\u3065\\uFF61\\u25D5\\u203F\\u203F\\u25D5\\uFF61)\\u3065"]:["😀","😂","🙂","😉","😍","😎","😭","😡","👍","👎","👏","🙏","💪","🔥","✨","🎉","❤️","💔","👀","🤔","😴","🙌","💯","✅"]; var per=which==='t'?3:6; var rr=mkrow(); arr.forEach(function(e,i){ if(i>0&&i%per===0){ pageEmoji.appendChild(rr); rr=mkrow(); } rr.appendChild(mkkey('ctrl emojikey',e,(function(ch){return function(){Engine.text(ch);};})(e))); }); pageEmoji.appendChild(rr); }
+buildEmojiPage('e');
 
 const BRAND_UNITS=[{type:'vowel',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'D',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'M',v:'E',t:'high',g:'no_glide',l:'short'},{type:'mora',c:'D',v:'E',t:'high',g:'no_glide',l:'short'}];
 (function(){const bn=document.getElementById('brandname'); if(bn) bn.innerHTML=unitsToHTML(BRAND_UNITS, true);})();
@@ -292,6 +297,7 @@ window.addMsg = addMsg;
   const app=document.getElementById('app');
   const tog=document.getElementById('kbdtoggle');
   const pv=document.getElementById('preview'); if(sendbtn) sendbtn.addEventListener('click',()=>sendMessage());
+  { const eb=document.getElementById('emojibtn'); if(eb) eb.addEventListener('click',function(){ var open=pageEmoji.style.display!=='none'; if(open){ showEmoji(false); } else { buildEmojiPage('e'); showEmoji(true); } }); }
   const msgs=document.getElementById('messages');
   function hide(){ app.classList.add('kbd-hidden'); tog.textContent='\u25B2'; tog.title='Show keyboard'; }
   function show(){ app.classList.remove('kbd-hidden'); tog.textContent='\u25BC'; tog.title='Hide keyboard'; }
