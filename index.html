@@ -299,7 +299,7 @@ window.addMsg = addMsg;
   if(pv) pv.addEventListener('click', show);
   if(msgs) msgs.addEventListener('click', show);
 })();
-function sendMessage(){
+function sendMessage(){ if(!window.REDEEMED){ window.showCodeBox(); return; }
   commitPend();
   const units=snapshotUnits(); if(units.length===0)return;
   const msg={ units, noun: noun() };
@@ -320,7 +320,7 @@ refresh();
 </body>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, query, limitToLast, set, get, child } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 const app = initializeApp({
   apiKey: "AIzaSyAsbNXA5NUhUEAXfcsJg__hQhGCDf3PuYg",
@@ -333,6 +333,9 @@ const app = initializeApp({
 });
 const db = getDatabase(app);
 const msgsRef = ref(db, 'messages');
+
+window.REDEEMED = (function(){ try{ return localStorage.getItem('inviteCode')||''; }catch(e){ return ''; } })();
+window.showCodeBox = function(){ if(document.getElementById('codebox')) return; var bar=document.createElement('div'); bar.id='codebox'; bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#1b1b21;border-bottom:1px solid #2c2c36;padding:10px;z-index:99999;display:flex;gap:8px;align-items:center'; var inp=document.createElement('input'); inp.placeholder='Enter invite code'; inp.style.cssText='flex:1;padding:8px;border-radius:6px;border:1px solid #444;background:#0f0f14;color:#fff;font-size:16px'; var btn=document.createElement('button'); btn.textContent='Unlock'; btn.style.cssText='padding:8px 14px;border-radius:6px;border:none;background:#2E7D55;color:#fff;font-size:16px'; var msg=document.createElement('span'); msg.style.cssText='color:#f88;font-size:13px'; async function tryCode(){ var code=(inp.value||'').trim(); if(!code){ return; } btn.disabled=true; msg.textContent=''; try{ var snap=await get(child(ref(db),'invites/'+code+'/active')); if(snap.exists() && snap.val()===true){ try{ localStorage.setItem('inviteCode',code); }catch(e){} window.REDEEMED=code; if(AUTH_UID){ set(ref(db,'redemptions/'+AUTH_UID), code).catch(function(){}); } bar.remove(); } else { msg.textContent='Invalid or blocked code'; btn.disabled=false; } }catch(e){ msg.textContent='Error: '+e.message; btn.disabled=false; } } btn.addEventListener('click',tryCode); inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryCode(); }); bar.appendChild(inp); bar.appendChild(btn); bar.appendChild(msg); document.body.appendChild(bar); inp.focus(); }
 const auth = getAuth(app);
 let AUTH_UID = '';
 onAuthStateChanged(auth, function(u){ if(u){ AUTH_UID = u.uid; } });
