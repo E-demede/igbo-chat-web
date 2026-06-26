@@ -194,7 +194,8 @@
   .card .h{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
   .card .av{ width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
     font-weight:700;font-size:14px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim));  color:#1a1a1a;}
-  .card .who{ font-size:14px; font-weight:600; }
+  .card .who{ font-size:var(--name,10px); font-weight:600; }
+  .card .who.glyphtext{ font-size:var(--name,10px) !important; }
   .card .uname{ font-size:12px; color:var(--bone-dim); }
   .card .when{ font-size:11px; color:var(--sand); margin-left:auto; }
   .card .post{ font-size:18px; line-height:1.5; color:var(--bone); white-space:pre-wrap; word-break:break-word; }
@@ -237,7 +238,8 @@
     font-weight:700;font-size:11px;color:#1c1714;background:linear-gradient(135deg,var(--clay),var(--clay-dim));  color:#1a1a1a;}
   .reply .rbody{ flex:1; min-width:0; }
   .reply .rhead{ display:flex; align-items:baseline; gap:6px; }
-  .reply .rwho{ font-size:13px; font-weight:600; }
+  .reply .rwho{ font-size:var(--name,10px); font-weight:600; }
+  .reply .rwho.glyphtext{ font-size:var(--name,10px) !important; }
   .reply .ruser{ font-size:11px; color:var(--bone-dim); }
   .reply .rwhen{ font-size:10px; color:var(--sand); margin-left:auto; }
   .reply .rtext{ font-size:15px; line-height:1.45; color:var(--bone); white-space:pre-wrap; word-break:break-word; margin-top:2px; }
@@ -316,7 +318,7 @@
   /* profile */
   .profile-header{ display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--ink-line); }
   .pf-av{ width:52px; height:52px; border-radius:50%; background:var(--clay); color:#1a1a1a; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; }
-  .pf-id{ flex:1; } .pf-name{ font-weight:700; font-size:10px; } .pf-name .glyphtext{ font-size:10px !important; }
+  .pf-id{ flex:1; } .pf-name{ font-weight:700; font-size:var(--name,10px); } .pf-name .glyphtext{ font-size:var(--name,10px) !important; }
   .pf-actions{ display:flex; gap:8px; }
   .pf-btn{ background:var(--ink-soft); color:var(--bone); border:1px solid var(--ink-line); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .pf-btn.danger{ color:#e0556b; }
@@ -345,7 +347,15 @@
   .dm-bubble{ max-width:75%; padding:8px 12px; border-radius:14px; background:var(--ink-soft); color:var(--bone); }
   .dm-msg.mine .dm-bubble{ background:var(--clay); color:#1a1a1a; }
   .dm-bubble.glyphtext{ font-size:var(--bubble,12px); line-height:2.0; }
-  .uname-glyph{ font-size:20px; }
+  .uname-glyph{ font-size:var(--name,10px) !important; }
+  /* when matching system size, names follow the bubble size instead of fixed 10px */
+  body.system-name{ --name:var(--bubble,12px); }
+  .delmodal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .delcard{ background:#211a15; border:1px solid var(--ink-line); border-radius:14px; padding:14px; width:80%; max-width:300px; display:flex; flex-direction:column; gap:8px; }
+  .deltitle{ font-weight:700; text-align:center; margin-bottom:4px; color:var(--bone); }
+  .delopt{ padding:11px; border-radius:10px; border:1px solid var(--ink-line); background:var(--ink-soft); color:var(--bone); font-size:14px; cursor:pointer; }
+  .delopt.danger{ color:#e0556b; border-color:#5a2a2a; }
+  .delopt.cancel{ background:none; color:var(--bone-dim); border:none; }
   .signout.danger{ color:#d9663f; }
   .signout.danger:hover{ color:#e0556b; }
   .signout{ width:100%; background:var(--ink-soft); border:1px solid var(--ink-line); color:var(--bone-dim);
@@ -413,10 +423,6 @@
         <div class="lbl">The square</div>
         <div class="feed" id="welcomeStream" style="background:none;"></div>
       </div>
-      <div class="compose">
-        <textarea id="welcomeInput" rows="1" placeholder="Post to the square…"></textarea>
-        <button class="send" id="welcomeSend" disabled>↑</button>
-      </div>
     </div>
 
     <!-- DIRECT MESSAGES (shell) -->
@@ -454,6 +460,16 @@
 
   </div>
 
+  <!-- delete-thread options modal -->
+  <div id="delModal" class="delmodal" style="display:none;">
+    <div class="delcard">
+      <div class="deltitle">Delete conversation</div>
+      <button class="delopt" id="delMine">Delete from my end</button>
+      <button class="delopt danger" id="delAll">Also unsend my messages</button>
+      <button class="delopt cancel" id="delCancel">Cancel</button>
+    </div>
+  </div>
+
   <!-- SHARED compose keyboard (used by feed, replies, DMs, search) -->
   <div id="composeDock">
     <div id="nameBanner" style="display:none;">
@@ -467,11 +483,6 @@
       <div id="gHideBtn" title="Hide keyboard">▼</div>
     </div>
     <div id="glyphKbd" style="display:none;"></div>
-    <div class="compose">
-      <button class="gtoggle" id="gToggle" type="button" title="Switch keyboard">Ꞅ</button>
-      <textarea id="feedInput" rows="1" placeholder="Share something…"></textarea>
-      <button class="send" id="feedSend" disabled>↑</button>
-    </div>
   </div>
 
   <!-- ===================== POST MENU (kebab) ===================== -->
@@ -516,6 +527,7 @@
     <div class="drawer-foot">
       <button class="signout" id="signoutBtn" title="Sign out"><svg viewBox="0 0 24 24" class="navico" style="width:18px;height:18px;vertical-align:middle;"><path d="M14 4h4v16h-4M11 8l4 4-4 4M15 12H4"/></svg></button>
       <button class="signout danger" id="deleteMeBtn" title="Delete my account"><svg viewBox="0 0 24 24" class="navico" style="width:18px;height:18px;vertical-align:middle;"><path d="M5 7h14M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+      <button class="signout" id="nameSizeBtn" title="Name size">Aa</button>
     </div>
   </div>
 
@@ -954,28 +966,18 @@ function refreshMeIdentity(){
     }
   }
 }
-function loadGlyphMode(){ try{ const v=localStorage.getItem('composeMode'); return v===null ? true : v==='glyph'; }catch(e){ return true; } }
-function saveGlyphMode(on){ try{ localStorage.setItem('composeMode', on?'glyph':'text'); }catch(e){} }
+function loadGlyphMode(){ return true; }   // glyph keyboard is the only composer
+function saveGlyphMode(on){ /* no-op: glyph is always on */ }
 function applyComposeMode(){
-  const ta=document.getElementById('feedInput');
   const prev=document.getElementById('glyphPreview');
   const row=document.getElementById('glyphSendRow');
   const kbd=document.getElementById('glyphKbd');
-  const compose=document.querySelector('#composeDock .compose');
-  const tog=document.getElementById('gToggle');
-  if(glyphMode){
-    buildGlyphKeyboard();
-    if(compose) compose.style.display='none';
-    if(prev) prev.style.display='block'; if(row) row.style.display='flex';
-    if(kbd) kbd.style.display = glyphKbdHidden ? 'none' : 'flex';
-    if(tog) tog.classList.remove('text-mode');
-    g_refresh();
-  } else {
-    if(compose) compose.style.display='';
-    if(prev) prev.style.display='none'; if(row) row.style.display='none'; if(kbd) kbd.style.display='none';
-    if(tog){ tog.classList.add('text-mode'); tog.textContent='Ꞅ'; }
-    const fs=document.getElementById('feedSend'); if(fs) fs.disabled = (ta ? ta.value.trim().length===0 : true);
-  }
+  glyphMode = true;
+  buildGlyphKeyboard();
+  if(prev) prev.style.display='block';
+  if(row) row.style.display='flex';
+  if(kbd) kbd.style.display = glyphKbdHidden ? 'none' : 'flex';
+  g_refresh();
 }
 function wireGlyphChrome(){
   const send=document.getElementById('gSendBtn');
@@ -993,7 +995,7 @@ function wireGlyphChrome(){
       }
       return;
     }
-    sendPost(document.getElementById('feedInput'), send);
+    sendPost();
   });
   if(emoji) emoji.addEventListener('click',()=>{
     buildGlyphKeyboard();
@@ -1069,6 +1071,14 @@ function initFontSizers(){
       alert("Sign-in failed: " + (e && e.message ? e.message : e));
     }
   });
+
+  // toggle display names between fixed-small (10px) and system/bubble size
+  (function(){
+    const apply=(sys)=>{ document.body.classList.toggle("system-name", sys); try{ localStorage.setItem("nameSize", sys?"system":"small"); }catch(_){} };
+    try{ apply(localStorage.getItem("nameSize")==="system"); }catch(_){}
+    const b=$("nameSizeBtn");
+    if(b) b.addEventListener("click", ()=>{ apply(!document.body.classList.contains("system-name")); });
+  })();
 
   $("signoutBtn").addEventListener("click", () => {
     signOut(auth).catch(e => console.error("signout failed", e));
@@ -1257,6 +1267,8 @@ function initFontSizers(){
     showApp();
     startFeed();
     loadStats();
+    // restore the last view across refresh (small delay so views/feed are ready)
+    setTimeout(() => { restoreViewState(); }, 300);
   }
 
   function initialOf(s){ return (s || "?").trim().charAt(0).toUpperCase() || "?"; }
@@ -1291,15 +1303,37 @@ function initFontSizers(){
       row.classList.add("active");
       if (typeof glyphTarget !== "undefined" && glyphTarget) closeGlyphReply();
       if (dmUnsub){ try{ dmUnsub(); }catch(_){} dmUnsub=null; dmCurrentId=null; }
+      if (dmUnsubRem){ try{ dmUnsubRem(); }catch(_){} dmUnsubRem=null; }
       if (searchTimer){ clearInterval(searchTimer); searchTimer=null; }
       if (document.body.classList.contains("search-mode")) restoreSearchPreview();
       $("barTitle").innerHTML = titles[v].t;
       $("barRight").innerHTML = titles[v].r;
       closeDrawer();
       if (v === "dms"){ loadAllUsers().then(() => { loadInbox(); }); }
+      saveViewState({ kind: "nav", view: v });
     });
   });
   wirePeopleSearch();
+
+  // Remember the last view across refreshes
+  function saveViewState(s){ try{ localStorage.setItem("lastView", JSON.stringify(s)); }catch(_){} }
+  function loadViewState(){ try{ return JSON.parse(localStorage.getItem("lastView")||"null"); }catch(_){ return null; } }
+  async function restoreViewState(){
+    const s = loadViewState();
+    if (!s) return;
+    try {
+      if (s.kind === "nav" && s.view && s.view !== "feed"){
+        const row = document.querySelector('.navrow[data-view="'+s.view+'"]');
+        if (row) row.click();
+      } else if (s.kind === "profile" && s.uid){
+        openProfile(s.uid);
+      } else if (s.kind === "dm" && s.uid){
+        // need the other user's record to open the thread
+        const snap = await get(child(ref(db), "users/" + s.uid));
+        openDM(s.uid, snap.exists() ? snap.val() : {});
+      }
+    } catch(_){}
+  }
 
   // Show a view that isn't a drawer nav row (e.g. profile, dm-thread)
   function showViewById(id){
@@ -1319,6 +1353,7 @@ function initFontSizers(){
   }
   async function openProfile(uid){
     if (!uid) return;
+    saveViewState({ kind: "profile", uid: uid });
     showViewById("v-profile");
     $("barTitle").innerHTML = PERSON_SVG;
     $("barRight").innerHTML = "";
@@ -1334,7 +1369,7 @@ function initFontSizers(){
 
     // header: avatar + glyph name (or latin fallback) + @username
     const nameHTML = (u.glyphName && u.glyphName.units)
-      ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">' + unitsToHTML(u.glyphName.units, !!u.glyphName.noun) + '</span>'
+      ? '<span class="glyphtext" style="font-size:var(--name,10px)">' + unitsToHTML(u.glyphName.units, !!u.glyphName.noun) + '</span>'
       : (u.name || "Someone");
     const isMe = ME && ME.uid === uid;
     let actions = "";
@@ -1412,7 +1447,7 @@ function initFontSizers(){
     hits.slice(0,20).forEach(([uid,u])=>{
       const row=document.createElement("div"); row.className="search-row";
       const nameHTML=(u.glyphName&&u.glyphName.units)
-        ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">'+unitsToHTML(u.glyphName.units,!!u.glyphName.noun)+'</span>'
+        ? '<span class="glyphtext" style="font-size:var(--name,10px)">'+unitsToHTML(u.glyphName.units,!!u.glyphName.noun)+'</span>'
         : (u.name||"Someone");
       row.innerHTML='<div class="sr-av">'+personIcon(60)+'</div><div class="sr-id"><div>'+nameHTML+'</div></div>';
       row.addEventListener("click",()=>{ GEngine.clear(); if(searchTimer){clearInterval(searchTimer);searchTimer=null;} restoreSearchPreview(); closeGlyphReply(); results.innerHTML=""; openProfile(uid); });
@@ -1462,24 +1497,64 @@ function initFontSizers(){
         const row = document.createElement("div");
         row.className = "inbox-row";
         const nameHTML = (u.glyphName && u.glyphName.units)
-          ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">' + unitsToHTML(u.glyphName.units, !!u.glyphName.noun) + '</span>'
+          ? '<span class="glyphtext" style="font-size:var(--name,10px)">' + unitsToHTML(u.glyphName.units, !!u.glyphName.noun) + '</span>'
           : (u.name || "Someone");
         row.innerHTML = '<div class="sr-av">' + personIcon(60) + '</div>' +
           '<div class="sr-id"><div>' + nameHTML + '</div></div>';
         row.addEventListener("click", () => openDM(it.with, u));
+        // long-press to delete this conversation
+        let lpT=null;
+        const startLP=(e)=>{ lpT=setTimeout(()=>{ deleteThread(it.cid, u); }, 550); };
+        const cancelLP=()=>{ if(lpT){ clearTimeout(lpT); lpT=null; } };
+        row.addEventListener("pointerdown", startLP);
+        row.addEventListener("pointerup", cancelLP);
+        row.addEventListener("pointerleave", cancelLP);
+        row.addEventListener("pointercancel", cancelLP);
         list.appendChild(row);
       });
     } catch(e){
       list.innerHTML = "<div class='empty'>Could not load messages.</div>";
     }
   }
+  function deleteThread(cid, u){
+    if(!ME || !cid) return;
+    const modal = $("delModal");
+    if(!modal) return;
+    modal.style.display = "flex";
+    const close = ()=>{ modal.style.display="none"; };
+    $("delCancel").onclick = close;
+    $("delMine").onclick = async ()=>{ close(); await clearThreadForMe(cid); };
+    $("delAll").onclick = async ()=>{ close(); await unsendMyMessages(cid); await clearThreadForMe(cid); };
+  }
+  async function clearThreadForMe(cid){
+    try{
+      const now = Date.now();
+      await update(ref(db), {
+        ["inbox/"+ME.uid+"/"+cid]: null,
+        ["dms/"+cid+"/cleared/"+ME.uid]: now
+      });
+      loadInbox();
+    }catch(e){ alert("Could not delete: "+(e&&e.message?e.message:e)); }
+  }
+  async function unsendMyMessages(cid){
+    try{
+      const snap = await get(ref(db, "dms/"+cid+"/messages"));
+      const msgs = snap.val() || {};
+      const updates = {};
+      for(const mid in msgs){
+        if(msgs[mid] && msgs[mid].from === ME.uid){ updates["dms/"+cid+"/messages/"+mid] = null; }
+      }
+      if(Object.keys(updates).length) await update(ref(db), updates);
+    }catch(e){ alert("Could not unsend: "+(e&&e.message?e.message:e)); }
+  }
   /* ===================== DIRECT MESSAGES ===================== */
   // Conversation id = the two uids sorted and joined, so both sides resolve the same id.
-  let dmUnsub = null, dmCurrentId = null;
+  let dmUnsub = null, dmUnsubRem = null, dmCurrentId = null;
   function dmConvId(a, b){ return [a, b].sort().join("__"); }
 
   async function openDM(otherUid, otherUser){
     if (!ME || !otherUid) return;
+    saveViewState({ kind: "dm", uid: otherUid });
     const cid = dmConvId(ME.uid, otherUid);
     dmCurrentId = cid;
     showViewById("v-dmthread");
@@ -1488,7 +1563,7 @@ function initFontSizers(){
 
     // header: who you're talking to (glyph name if any)
     const nameHTML = (otherUser && otherUser.glyphName && otherUser.glyphName.units)
-      ? '<span class="glyphtext" style="font-size:var(--bubble,12px)">' + unitsToHTML(otherUser.glyphName.units, !!otherUser.glyphName.noun) + '</span>'
+      ? '<span class="glyphtext" style="font-size:var(--name,10px)">' + unitsToHTML(otherUser.glyphName.units, !!otherUser.glyphName.noun) + '</span>'
       : ((otherUser && otherUser.name) || "Someone");
     $("dmHeader").innerHTML =
       '<button class="dm-back" id="dmBack"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="M15 6l-6 6 6 6"/></svg></button>' +
@@ -1499,14 +1574,29 @@ function initFontSizers(){
     const scroll = $("dmScroll");
     scroll.innerHTML = "";
 
+    // how recently I cleared this thread (0 if never) — only show newer messages
+    let clearedAt = 0;
+    try {
+      const cs = await get(ref(db, "dms/" + cid + "/cleared/" + ME.uid));
+      if (cs.exists()) clearedAt = cs.val() || 0;
+    } catch(_){}
+
     // live-listen to this conversation's messages
     if (dmUnsub){ try { dmUnsub(); } catch(_){} dmUnsub = null; }
+    if (dmUnsubRem){ try { dmUnsubRem(); } catch(_){} dmUnsubRem = null; }
     const msgsRef = query(ref(db, "dms/" + cid + "/messages"), orderByChild("ts"), limitToLast(200));
     dmUnsub = onChildAdded(msgsRef, (snap) => {
       if (dmCurrentId !== cid) return;
       const m = snap.val();
-      scroll.appendChild(renderDM(m));
+      if (m && (m.ts || 0) <= clearedAt) return;   // hide messages from before I cleared
+      const el = renderDM(m); el.setAttribute("data-mid", snap.key);
+      scroll.appendChild(el);
       scroll.scrollTop = scroll.scrollHeight;
+    });
+    dmUnsubRem = onChildRemoved(ref(db, "dms/" + cid + "/messages"), (snap) => {
+      if (dmCurrentId !== cid) return;
+      const el = scroll.querySelector('[data-mid="' + snap.key + '"]');
+      if (el) el.remove();
     });
 
     // open the glyph keyboard pointed at this DM
@@ -1578,20 +1668,11 @@ function initFontSizers(){
       delete replyCache[snap.key];
     });
 
-    wireCompose($("feedInput"), $("feedSend"));
-    // Glyph/text compose toggle (feed only), remembers last choice.
-    glyphMode = loadGlyphMode();
-    const gtog = $("gToggle");
-    if (gtog){
-      gtog.addEventListener("click", () => {
-        glyphMode = !glyphMode; saveGlyphMode(glyphMode); applyComposeMode();
-      });
-    }
+    glyphMode = true;
     wireGlyphChrome();
     g_wirePreviewTaps();
     initFontSizers();
     applyComposeMode();
-    wireCompose($("welcomeInput"), $("welcomeSend"));
   }
 
   function renderCard(id, post){
@@ -2044,39 +2125,20 @@ function initFontSizers(){
     });
   }
 
-  async function sendPost(input, sendBtn){
+  async function sendPost(){
     if (!ME) return;
-    // Glyph mode (feed only): send units object instead of plain text.
-    if (glyphMode && input && input.id === "feedInput"){
-      const units = g_snapshot();
-      if (units.length === 0) return;
-      sendBtn.disabled = true;
-      try {
-        await push(ref(db, "posts"), {
-          uid: ME.uid, name: ME.name, username: ME.username, gname: (ME.glyphName||null),
-          body: { units: units, noun: g_noun() }, ts: Date.now()
-        });
-        GEngine.clear(); g_refresh();
-      } catch (e) {
-        alert("Could not post: " + (e && e.message ? e.message : e));
-      } finally {
-        g_refresh();
-      }
-      return;
-    }
-    const text = input.value.trim();
-    if (!text) return;
-    sendBtn.disabled = true;
+    const units = g_snapshot();
+    if (units.length === 0) return;
     try {
       await push(ref(db, "posts"), {
         uid: ME.uid, name: ME.name, username: ME.username, gname: (ME.glyphName||null),
-        body: text, ts: Date.now()
+        body: { units: units, noun: g_noun() }, ts: Date.now()
       });
-      input.value = ""; input.style.height = "auto";
+      GEngine.clear(); g_refresh();
     } catch (e) {
       alert("Could not post: " + (e && e.message ? e.message : e));
     } finally {
-      sendBtn.disabled = input.value.trim().length === 0;
+      g_refresh();
     }
   }
 
